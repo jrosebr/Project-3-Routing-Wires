@@ -10,7 +10,8 @@ public class Routing {
      * Paths that connect the points.
      */
     public static ArrayList<Wire>
-    findPaths(Board board, ArrayList<Endpoints> goals) {
+    findPaths(Board board, ArrayList<Endpoints> goals)
+    {
         return null;  // replace this line with your code
     }
 
