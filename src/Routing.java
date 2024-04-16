@@ -9,73 +9,74 @@ public class Routing {
      * endpoints that need to be connected. The function returns a list of
      * Paths that connect the points.
      */
-    public static ArrayList<Wire>
-    findPaths(Board board, ArrayList<Endpoints> goals)
+    public static ArrayList<Wire> findPaths(Board board, ArrayList<Endpoints> goals)
     {
         ArrayList<Wire> paths = new ArrayList<>();
 
-        //Iterate through each pair of endpoint
-        for (int i = 0; i < goals.size(); ++i)
+        for (Endpoints points : goals)
         {
-            for (int j = i; j < goals.size(); ++j)
-            {
-                //Find path between pair
-                Wire path = findPath(board, goals.get(i).start, goals.get(j).end);
-                if (path != null)
-                {
-                    paths.add(path);
-                    board.placeWire(path); //Create the wire on the board
-                }
-            }
+            HashSet<Coord> visited = new HashSet<>();
+            HashMap<Coord, Coord> parent = new HashMap<>();
+            BFS(points, board, visited, parent, paths);
         }
 
         return paths;
     }
-
-    private static Wire findPath(Board board, Coord start, Coord end)
+    public static void BFS (Endpoints points, Board board, Set<Coord> visited, Map<Coord, Coord> parent, ArrayList<Wire> paths)
     {
-        Map<Coord, Coord> parent = new HashMap<>();
-        Queue<Coord> queue = new LinkedList<>();
-        Map<Coord, Boolean> visited = new HashMap<>();
+        Coord start = points.start;
+        Coord end = points.end;
 
-        queue.offer(start);
-        visited.put(start, true);
+        Queue<Coord> Q = new LinkedList<>();
+        Q.add(start);
+        parent.put(start,start);
+        visited.add(start);
 
-        while (!queue.isEmpty())
+        boolean foundEnd = false;
+
+        while (!Q.isEmpty() && !foundEnd)
         {
-            Coord current = queue.poll();
+            Coord u = Q.remove();
 
-            if (current.equals(end))
-                return constructPath(parent, start, end);
-
-            for (Coord neighbor : board.adj(current))
+            for (Coord v : board.adj(u))
             {
-                if (!visited.containsKey(neighbor) && !board.isObstacle(neighbor))
-                {
-                    queue.offer(neighbor);
-                    visited.put(neighbor, true);
-                    parent.put(neighbor, current);
+                if (!visited.contains(v) && !board.isObstacle(v) && (!board.isOccupied(v)) || v.equals(end))
+                { // If coord not visited, obstacle, occupied with another path
+
+                    parent.put(v,u);
+                    Q.add(v);
+                    visited.add(v);
+
+                    if (v.equals(end))
+                    { // Add to wire list and exit
+                        foundEnd = true;
+                        break;
+                    }
                 }
             }
         }
-
-        return null; //No path found
+        if (foundEnd)
+        {
+            createWireFromPath(board, start, end, paths, parent);
+        }
     }
-
-    private static Wire constructPath(Map<Coord, Coord> parent, Coord start, Coord end)
+    public static void createWireFromPath (Board board, Coord start, Coord end, ArrayList<Wire> paths, Map<Coord, Coord> parent)
     {
         ArrayList<Coord> pathPoints = new ArrayList<>();
+
+        // Trace back the path
         Coord current = end;
 
         while (!current.equals(start))
         {
-            pathPoints.add(current);
+            pathPoints.add(0, current);
             current = parent.get(current);
         }
-        pathPoints.add(start);
 
-        Collections.reverse(pathPoints);
-        Wire path = new Wire(1, pathPoints);
-        return path;
+        pathPoints.add(0, start);
+
+        Wire path = new Wire(board.getValue(start), pathPoints);
+        board.placeWire(path);
+        paths.add(path);
     }
 }
